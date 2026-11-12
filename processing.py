@@ -39,15 +39,6 @@ BITRATES = [(32, "32 kbps  (speech, tiny)"),
             (128, "128 kbps  (music, default)")]
 
 
-# Short sine at the ceiling level, used by the Test button: the loudest
-# any sample in the export is allowed to be.
-def ceiling_test_tone(ceiling_db, samplerate=44100, seconds=1.0, freq=440.0):
-    t = np.arange(int(samplerate * seconds), dtype=np.float32) / samplerate
-    tone = np.sin(2.0 * np.pi * freq * t).astype(np.float32)
-    fade = max(1, int(samplerate * 0.02))
-    tone[:fade] *= np.linspace(0.0, 1.0, fade, dtype=np.float32)
-    tone[-fade:] *= np.linspace(1.0, 0.0, fade, dtype=np.float32)
-    return tone * db_to_lin(ceiling_db)
 
 # Convert decibels to a linear gain.
 def db_to_lin(db):
@@ -84,6 +75,15 @@ def unique_path(path):
         n += 1
     return f"{stem}_{n}{ext}"
 
+# Short sine at the ceiling level, used by the Test button: the loudest
+# any sample in the export is allowed to be.
+def ceiling_test_tone(ceiling_db, samplerate=44100, seconds=1.0, freq=440.0):
+    t = np.arange(int(samplerate * seconds), dtype=np.float32) / samplerate
+    tone = np.sin(2.0 * np.pi * freq * t).astype(np.float32)
+    fade = max(1, int(samplerate * 0.02))
+    tone[:fade] *= np.linspace(0.0, 1.0, fade, dtype=np.float32)
+    tone[-fade:] *= np.linspace(1.0, 0.0, fade, dtype=np.float32)
+    return tone * db_to_lin(ceiling_db)
 
 
 # Streaming compressor plus optional ceiling, with gain state carried

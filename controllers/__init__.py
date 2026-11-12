@@ -10,3 +10,4 @@ from .transport import TransportMixin
 from .navigation import NavigationMixin
 from .bookmarks import BookmarksMixin
 from .status import StatusMixin
+from .settings import SettingsMixin

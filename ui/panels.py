@@ -14,63 +14,79 @@ class PanelsMixin:
     # ---- UI build -------------------------------------------------------
 
     def _build_top_row(self):
+
         self.rec_btn = QPushButton("Record")
         self.rec_btn.setObjectName("record")
         self.rec_btn.setCheckable(True)
         self.rec_btn.setMinimumWidth(115)
         self.rec_btn.clicked.connect(self.toggle_record)
-        self.stop_rec_btn = QPushButton("Stop rec")                       
-        self.stop_rec_btn.setMinimumWidth(80)                             
-        self.stop_rec_btn.setEnabled(False)                                
+
+        self.stop_rec_btn = QPushButton("Stop rec")
+        self.stop_rec_btn.setMinimumWidth(80)
+        self.stop_rec_btn.setEnabled(False)
         self.stop_rec_btn.setToolTip("Finish recording and load for editing")
-        self.stop_rec_btn.clicked.connect(self.stop_record)   
+        self.stop_rec_btn.clicked.connect(self.stop_record)
+
         self.mark_btn = QPushButton("Mark")
         self.mark_btn.setMinimumWidth(60)
         self.mark_btn.setEnabled(False)
-        self.mark_btn.setToolTip(
-            "Drop a bookmark at the current recording time   [Ctrl+B]")
-        self.mark_btn.clicked.connect(self.add_bookmark)  
-        self.live_zoom_btn = QPushButton("View: whole")
+        self.mark_btn.setToolTip("Drop a bookmark at the current time   [Ctrl+B]")
+        self.mark_btn.clicked.connect(self.add_bookmark)
+
+        self.live_zoom_btn = QPushButton("View: last 8 s")
         self.live_zoom_btn.setMinimumWidth(100)
         self.live_zoom_btn.setCheckable(True)
         self.live_zoom_btn.setChecked(True)
         self.live_zoom_btn.setEnabled(False)
         self.live_zoom_btn.setToolTip(
-            "While recording: show the whole recording so far, or only the last 8 s")
+            "While recording: switch between the whole recording so far "
+            "and only the last 8 s")
         self.live_zoom_btn.toggled.connect(
             lambda on: self.live_zoom_btn.setText(
-                "View: whole" if on else "View: last 8 s"))           
+                "View: last 8 s" if on else "View: whole"))
+        
         self.source_btn = QPushButton("Source: none")
-        self.source_btn.setMinimumWidth(230)
+        self.source_btn.setMinimumWidth(160)
         self.source_btn.setToolTip("Click to choose what to record   [Ctrl+I]")
         self.source_btn.clicked.connect(self.choose_source)
+
         self.clip_name = QLineEdit("clip")
         self.clip_name.setPlaceholderText("Clip name (used as the filename and title)")
-        self.clip_name.setMinimumWidth(320)
+        self.clip_name.setMinimumWidth(100)
         self.clip_name.setToolTip("Filename and metadata title on export.")
+
         self.sr_box = QComboBox()
         for rate, label in SAMPLE_RATES:
             self.sr_box.addItem(label, rate)
+        self.sr_box.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        self.sr_box.setMinimumContentsLength(10)
+        self.sr_box.view().setMinimumWidth(260)
         self.sr_box.setToolTip(
             "Match this to your device's rate in Windows Sound\n"
             "settings. A mismatch forces a resample."
         )
         self.sr_box.currentIndexChanged.connect(self.check_rate_match)
+
         self.mono_box = QCheckBox("Mono")
         self.mono_box.setToolTip("Halves disk and file size — ideal for podcasts.")
+        sep_a = sep()
+        self._record_only = [self.rec_btn, self.stop_rec_btn, self.live_zoom_btn,
+                             self.source_btn, sep_a, self.sr_box, self.mono_box]
+        
         row = QHBoxLayout()
         row.addWidget(self.rec_btn)
-        row.addWidget(self.stop_rec_btn)                                   
+        row.addWidget(self.stop_rec_btn)
         row.addWidget(self.mark_btn)
         row.addWidget(self.live_zoom_btn)
         row.addWidget(self.source_btn)
+        row.addWidget(sep_a)
+        row.addWidget(self.sr_box)
+        row.addWidget(self.mono_box)
         row.addWidget(sep())
         row.addWidget(QLabel("Name:"))
         row.addWidget(self.clip_name, 1)
-        row.addWidget(sep())
-        row.addWidget(self.sr_box)
-        row.addWidget(self.mono_box)
         return row
+
 
     def _build_middle(self):
         self.wave = WaveformView()
@@ -86,6 +102,7 @@ class PanelsMixin:
             None, self.act_undo, self.act_redo, self.act_piece_fades ,None,                                
             self.act_bookmark, self.act_rm_bookmark,
         ]
+
         self.collapse_btn = QPushButton("\u25c0")
         self.collapse_btn.setObjectName("collapse")
         self.collapse_btn.setFixedWidth(14)
@@ -94,17 +111,21 @@ class PanelsMixin:
         self.collapse_btn.setChecked(True)
         self.collapse_btn.setToolTip("Show / hide the kept pieces list  [Ctrl+L]")
         self.collapse_btn.toggled.connect(self.act_pieces.setChecked)
+
         self.seg_list = QListWidget()
         self.seg_list.setToolTip("Click to jump, double-click to set this piece's fades.")
         self.seg_list.itemClicked.connect(self.on_piece_clicked)
         self.seg_list.itemDoubleClicked.connect(self.on_piece_double_clicked)
+
         self.pieces_panel = QWidget()
         self.pieces_panel.setFixedWidth(195)
         self.pieces_panel.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+
         panel = QVBoxLayout(self.pieces_panel)
         panel.setContentsMargins(0, 0, 0, 0)
         panel.addWidget(QLabel("Kept pieces"))
         panel.addWidget(self.seg_list, 1)
+
         mid = QHBoxLayout()
         mid.addWidget(self.wave, 1)
         mid.addWidget(self.collapse_btn)
@@ -116,19 +137,23 @@ class PanelsMixin:
         self.scroll.setRange(0, 0)
         self.scroll.setToolTip("Pan the view when zoomed in")
         self.scroll.valueChanged.connect(self.on_scroll)
+
         self.zoom_out_btn = QPushButton("\u2212")
         self.zoom_out_btn.setObjectName("tiny")
         self.zoom_out_btn.setFixedWidth(32)
         self.zoom_out_btn.setToolTip("Zoom out around the playhead   [-]")
         self.zoom_out_btn.clicked.connect(lambda: self.wave.zoom_out())
+
         self.zoom_in_btn = QPushButton("+")
         self.zoom_in_btn.setObjectName("tiny")
         self.zoom_in_btn.setFixedWidth(32)
         self.zoom_in_btn.setToolTip("Zoom in around the playhead   [+]")
         self.zoom_in_btn.clicked.connect(lambda: self.wave.zoom_in())
+
         self.fit_btn = QPushButton("Fit")
         self.fit_btn.setToolTip("Zoom out to the whole recording   [Ctrl+0]")
         self.fit_btn.clicked.connect(lambda: self.wave.zoom_fit())
+
         self.goto_edit = QLineEdit()
         self.goto_edit.setFixedWidth(110)
         self.goto_edit.setPlaceholderText("4:20")
@@ -138,6 +163,7 @@ class PanelsMixin:
         self.goto_edit.returnPressed.connect(self.do_goto)
         goto_btn = QPushButton("Go")
         goto_btn.clicked.connect(self.do_goto)
+        
         row = QHBoxLayout()
         row.addWidget(self.scroll, 1)
         row.addWidget(self.zoom_out_btn)

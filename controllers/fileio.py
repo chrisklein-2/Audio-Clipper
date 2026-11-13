@@ -1,5 +1,5 @@
 """
-app_fileio.py - FileIOMixin: session management, load, append, join.
+fileio.py - FileIOMixin: session management, load, append, join.
 
 Mixed into MainWindow.
 """
@@ -12,11 +12,13 @@ from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
 from store import AudioStore                                      
 from editor import Keep, format_time                                  
 from processing import append_decoded, decode_to_raw                   
-from config import LOAD_FILTER, SESSION_DIR                        
-from ui.dialogs import JoinDialog                                       
+from config import LOAD_EXTS, LOAD_FILTER, SESSION_DIR                       
+from ui.dialogs import JoinDialog, confirm                                       
 from utils import mbytes                                            
 
 class FileIOMixin:
+
+# ---- group session management ----------------------------------------------
 
     def new_session_path(self):
         os.makedirs(SESSION_DIR, exist_ok=True)
@@ -32,37 +34,52 @@ class FileIOMixin:
                 pass
         self.session_path = None
 
+    def reset_to_record_screen(self):
+        self.stop_playback()
+        self.drop_session()
+        self.timeline.set_store(None)
+        self.bookmarks.clear()
+        self.wave.set_bookmarks(self.bookmarks)
+        self.wave.set_timeline(self.timeline)
+        self.unsaved = False
+        self.refresh_pieces()
+        self.sync_scrollbar()
+        self.statusBar().clearMessage()        
+        self.set_mode("record")
+        self.update_actions()
+
+    def new_recording(self):
+        """File menu: scrap the current clip and go to the record screen."""
+        if self.confirm_discard("start a new recording"):
+            self.reset_to_record_screen()
+
     def confirm_discard(self, verb="start a new recording"):
         if self.recorder is not None:
-            answer = QMessageBox.warning(
+            if not confirm(
                 self, "Recording in progress",
                 f"A recording is in progress and has NOT been saved.\n\n"
-                f"If you {verb} now, it will be discarded.\n\nContinue?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-            )
-            if answer != QMessageBox.Yes:
+                f"If you {verb} now, it will be discarded.",
+                "Discard recording", "Keep recording",
+            ):
                 return False
             self.abort_record()
             return True
         if self.timeline.duration() <= 0:
             return True
         if self.unsaved:
-            text = (
+            return confirm(
+                self, "Discard current clip?",
                 f"The current clip has NOT been exported.\n\n"
-                f"If you {verb} now, those edits are gone for good.\n\nContinue?"
+                f"If you {verb} now, those edits are gone for good.",
+                "Discard without saving", "Cancel",
             )
-        else:
-            text = (
-                "This will replace the current recording.\n\n"
-                "(Your last export is safe on disk.)\n\nContinue?"
-            )
-        return (
-            QMessageBox.warning(
-                self, "Discard current recording?", text,
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
-            )
-            == QMessageBox.Yes
+        return confirm(
+            self, "Replace current clip?",
+            "This will replace the current clip.\n\n"
+            "(Your last export is safe on disk.)",
+            "Replace clip", "Cancel",
         )
+# ---- loading ----------------------------------------------
 
     def _show_store(self, store, name_hint=None, keeps=None):
         self.timeline.set_store(store, keeps)
@@ -79,6 +96,7 @@ class FileIOMixin:
             f"{format_time(store.duration())} on disk "
             f"({mbytes(os.path.getsize(store.path))}), overview "
             f"{mbytes(store.pyramid_bytes())} in RAM", 10000)
+        self.set_mode("edit")
         
 
     def load_file(self):
@@ -87,8 +105,10 @@ class FileIOMixin:
         path, _ = QFileDialog.getOpenFileName(
             self, "Open audio / video", self.ensure_export_dir(), LOAD_FILTER
         )
-        if not path:
-            return
+        if path:
+            self.load_path(path)
+
+    def load_path(self, path):
         self.stop_playback()
         self.drop_session()
         self.bookmarks.clear()
@@ -198,3 +218,33 @@ class FileIOMixin:
         self.run_task(
             "Joining", f"Decoding and joining {len(paths)} files...", work, done
         )
+
+# ---- drag and drop ----------------------------------------------
+
+    def drop_path(self, mime):
+        """The single approved audio file in a drop, or None."""
+        if not mime.hasUrls():
+            return None
+        urls = mime.urls()
+        if len(urls) != 1 or not urls[0].isLocalFile():
+            return None
+        path = urls[0].toLocalFile()
+        if os.path.splitext(path)[1].lower() not in LOAD_EXTS:
+            return None
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            return None
+        return path
+
+    def can_accept_drop(self, mime):
+        return (self.mode == "record" and self.recorder is None
+                and self.drop_path(mime) is not None)
+
+    def handle_drop(self, mime):
+        path = self.drop_path(mime)
+        if path is None or self.mode != "record" or self.recorder is not None:
+            self.statusBar().showMessage(
+                "Drop a single audio file (" + " ".join(LOAD_EXTS) + ")", 6000)
+            return
+        if self.confirm_discard("load a file"):
+            self.load_path(path)
+

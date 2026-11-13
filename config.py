@@ -8,7 +8,8 @@ SESSION_DIR = os.path.join(APP_DIR, "session")
 PLAY_BLOCK = 8192
 ORPHAN_AGE = 24 * 3600
 
-LOAD_FILTER = (
-    "Audio / video (*.wav *.flac *.ogg *.aiff *.mp3 *.m4a *.mp4 *.aac "
-    "*.opus *.webm *.mkv *.mov *.wma);;All files (*)"
-)
+LOAD_EXTS = (".wav", ".flac", ".ogg", ".aiff", ".mp3", ".m4a", ".mp4",
+             ".aac", ".opus", ".webm", ".mkv", ".mov", ".wma")
+
+LOAD_FILTER = ("Audio / video (" + " ".join("*" + e for e in LOAD_EXTS)
+               + ");;All files (*)")

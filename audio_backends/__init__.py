@@ -5,7 +5,9 @@ from .devices import (
     default_device_index, native_samplerate, loopback_help,
 )
 from .recorder import (
-    Recorder, fit_channels, glitch_count, reset_glitches,
+    Recorder, fit_channels, 
 )
 
 from .player import StreamPlayer
+
+from .glitches import (glitch_count, reset_glitches)

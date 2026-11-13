@@ -10,6 +10,7 @@ as a confusing failure halfway through an export.
 import sys
 
 from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtGui import QIcon
 
 from app import MainWindow
 from processing import missing_tools
@@ -37,6 +38,7 @@ def check_tools():
 def main():
     app = QApplication(sys.argv)
     app.setApplicationName("SpotClip")
+    app.setWindowIcon(QIcon("assets/..."))
     apply_dark_theme(app)
     check_tools()
     window = MainWindow()

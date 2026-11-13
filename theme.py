@@ -3,6 +3,7 @@ theme.py - dark palette, stylesheet and the waveform colours.
 """
 
 from PySide6.QtGui import QColor, QPalette
+import sys
 
 BG = "#0e0e11"
 PANEL = "#17171c"
@@ -171,3 +172,29 @@ def apply_dark_theme(app):
     pal.setColor(QPalette.Disabled, QPalette.ButtonText, QColor("#5a5a66"))
     app.setPalette(pal)
     app.setStyleSheet(QSS)
+
+# Windows 10 1809+ / 11: dark title bar (and coloured caption on Windows 11).
+def dark_title_bar(window):
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        def colorref(hex_colour):
+            c = QColor(hex_colour)
+            return ctypes.c_int(c.red() | (c.green() << 8) | (c.blue() << 16))
+
+        hwnd = int(window.winId())
+        dwm = ctypes.windll.dwmapi
+        on = ctypes.c_int(1)
+        for attr in (20, 19):                 # DWMWA_USE_IMMERSIVE_DARK_MODE
+            if dwm.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(on),
+                                         ctypes.sizeof(on)) == 0:
+                break
+        caption, text = colorref(BG), colorref(TEXT)
+        dwm.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption),
+                                  ctypes.sizeof(caption))      # caption colour
+        dwm.DwmSetWindowAttribute(hwnd, 36, ctypes.byref(text),
+                                  ctypes.sizeof(text))         # caption text
+    except Exception:
+        pass

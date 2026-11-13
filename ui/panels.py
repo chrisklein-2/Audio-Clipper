@@ -1,3 +1,4 @@
+""" panels.py - PanelsMixin: builds the main window's panels and connects the actions to the main window. """
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QGroupBox, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, 
@@ -15,24 +16,28 @@ class PanelsMixin:
 
     def _build_top_row(self):
 
+        # record button
         self.rec_btn = QPushButton("Record")
         self.rec_btn.setObjectName("record")
         self.rec_btn.setCheckable(True)
         self.rec_btn.setMinimumWidth(115)
         self.rec_btn.clicked.connect(self.toggle_record)
 
+        # stop recording button
         self.stop_rec_btn = QPushButton("Stop rec")
         self.stop_rec_btn.setMinimumWidth(80)
         self.stop_rec_btn.setEnabled(False)
         self.stop_rec_btn.setToolTip("Finish recording and load for editing")
         self.stop_rec_btn.clicked.connect(self.stop_record)
 
+        # bookmark button
         self.mark_btn = QPushButton("Mark")
         self.mark_btn.setMinimumWidth(60)
         self.mark_btn.setEnabled(False)
         self.mark_btn.setToolTip("Drop a bookmark at the current time   [Ctrl+B]")
         self.mark_btn.clicked.connect(self.add_bookmark)
 
+        # zoom button
         self.live_zoom_btn = QPushButton("View: last 8 s")
         self.live_zoom_btn.setMinimumWidth(100)
         self.live_zoom_btn.setCheckable(True)
@@ -44,17 +49,20 @@ class PanelsMixin:
         self.live_zoom_btn.toggled.connect(
             lambda on: self.live_zoom_btn.setText(
                 "View: last 8 s" if on else "View: whole"))
-        
+
+        # source button
         self.source_btn = QPushButton("Source: none")
         self.source_btn.setMinimumWidth(160)
         self.source_btn.setToolTip("Click to choose what to record   [Ctrl+I]")
         self.source_btn.clicked.connect(self.choose_source)
 
+        # clip name box
         self.clip_name = QLineEdit("clip")
         self.clip_name.setPlaceholderText("Clip name (used as the filename and title)")
         self.clip_name.setMinimumWidth(100)
         self.clip_name.setToolTip("Filename and metadata title on export.")
 
+        ## assemble the row
         self.sr_box = QComboBox()
         for rate, label in SAMPLE_RATES:
             self.sr_box.addItem(label, rate)
@@ -67,12 +75,14 @@ class PanelsMixin:
         )
         self.sr_box.currentIndexChanged.connect(self.check_rate_match)
 
+        # mono checkbox
         self.mono_box = QCheckBox("Mono")
         self.mono_box.setToolTip("Halves disk and file size — ideal for podcasts.")
         sep_a = sep()
         self._record_only = [self.rec_btn, self.stop_rec_btn, self.live_zoom_btn,
                              self.source_btn, sep_a, self.sr_box, self.mono_box]
-        
+
+        # add the widgets
         row = QHBoxLayout()
         row.addWidget(self.rec_btn)
         row.addWidget(self.stop_rec_btn)
@@ -89,6 +99,8 @@ class PanelsMixin:
 
 
     def _build_middle(self):
+
+        # create the wave form
         self.wave = WaveformView()
         self.wave.set_timeline(self.timeline)
         self.wave.selectionChanged.connect(self.update_actions)
@@ -103,6 +115,7 @@ class PanelsMixin:
             self.act_bookmark, self.act_rm_bookmark,
         ]
 
+        # side bar on the right that collapses
         self.collapse_btn = QPushButton("\u25c0")
         self.collapse_btn.setObjectName("collapse")
         self.collapse_btn.setFixedWidth(14)
@@ -112,6 +125,7 @@ class PanelsMixin:
         self.collapse_btn.setToolTip("Show / hide the kept pieces list  [Ctrl+L]")
         self.collapse_btn.toggled.connect(self.act_pieces.setChecked)
 
+        # list of kept pieces
         self.seg_list = QListWidget()
         self.seg_list.setToolTip("Click to jump, double-click to set this piece's fades.")
         self.seg_list.itemClicked.connect(self.on_piece_clicked)
@@ -138,7 +152,7 @@ class PanelsMixin:
         self.scroll.setToolTip("Pan the view when zoomed in")
         self.scroll.valueChanged.connect(self.on_scroll)
 
-        self.zoom_out_btn = QPushButton("\u2212")
+        self.zoom_out_btn = QPushButton("\u2212") # minus sign
         self.zoom_out_btn.setObjectName("tiny")
         self.zoom_out_btn.setFixedWidth(32)
         self.zoom_out_btn.setToolTip("Zoom out around the playhead   [-]")

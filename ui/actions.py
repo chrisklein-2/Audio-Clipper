@@ -1,7 +1,8 @@
+""" actions.py - ActionsMixin: connects the actions to the main window and sets up the keyboard shortcuts."""
 from PySide6.QtGui import QAction, QKeySequence
 
 class ActionsMixin:
-        # ---- actions & menus ------------------------------------------------
+    # ---- actions & menus ------------------------------------------------
 
     def _build_actions(self):
         self.act_mark_in = QAction("Mark in  [", self, shortcut="[")

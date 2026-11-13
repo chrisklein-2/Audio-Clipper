@@ -1,10 +1,15 @@
+""" menus.py - MenuMixin: builds the menu bar and connects the actions to the main window. """
+
 from .dialogs import HelpDialog
 from utils import reveal_folder
 
 class MenuMixin:    
     
     def _build_menu_bar(self):
+
         bar = self.menuBar()
+
+#------------------ File Menu ---------------------------        
         fm = bar.addMenu("File")
         fm.addAction("New recording", self.new_recording, "Ctrl+N")
         fm.addSeparator()
@@ -20,6 +25,8 @@ class MenuMixin:
         fm.addSeparator()
         fm.addAction("Quit", self.close, "Ctrl+Q")
 
+
+# ---------------- Edit Menu ---------------------------
         em = bar.addMenu("Edit")
         em.addAction(self.act_undo)
         em.addAction(self.act_redo)
@@ -42,12 +49,14 @@ class MenuMixin:
         em.addAction(self.act_next_bookmark)
         em.addAction(self.act_clear_bookmarks)
 
+#------------------ View Menu ---------------------------
         vm = bar.addMenu("View")
         vm.addAction(self.act_fit)
         vm.addAction(self.act_zoomsel)
         vm.addSeparator()
         vm.addAction(self.act_pieces)
 
+#------------------ Settings Menu ---------------------------
         sm = bar.addMenu("Settings")
         sm.addAction("Select audio source...", self.choose_source, "Ctrl+I")
         sm.addSeparator()

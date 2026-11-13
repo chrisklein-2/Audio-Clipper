@@ -7,8 +7,7 @@ Mixed into MainWindow.
 import os
 import time
 
-from PySide6.QtWidgets import QDialog, QFileDialog, QMessageBox
-
+from PySide6.QtWidgets import QDialog, QFileDialog
 from store import AudioStore                                      
 from editor import Keep, format_time                                  
 from processing import append_decoded, decode_to_raw                   
@@ -47,9 +46,9 @@ class FileIOMixin:
         self.statusBar().clearMessage()        
         self.set_mode("record")
         self.update_actions()
-
+    
+    # File menu: scrap the current clip and go to the record screen
     def new_recording(self):
-        """File menu: scrap the current clip and go to the record screen."""
         if self.confirm_discard("start a new recording"):
             self.reset_to_record_screen()
 
@@ -220,9 +219,10 @@ class FileIOMixin:
         )
 
 # ---- drag and drop ----------------------------------------------
-
+    
+    # The single approved audio file in a drop, or None
     def drop_path(self, mime):
-        """The single approved audio file in a drop, or None."""
+
         if not mime.hasUrls():
             return None
         urls = mime.urls()

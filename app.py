@@ -101,6 +101,7 @@ class MainWindow(
         self.setMinimumSize(880, 600)
         self.resize(1080, 680)
 
+    # starts in record mode
     def _post_build(self):
         self.set_cover(self.cover_path)
         self.resolve_source()
@@ -109,7 +110,7 @@ class MainWindow(
         self.set_mode("record")
         self.ensure_export_dir()
         self.setAcceptDrops(True)
-        self.clip_name.setAcceptDrops(False)     # text boxes would swallow a drop
+        self.clip_name.setAcceptDrops(False)     
         self.goto_edit.setAcceptDrops(False)
         self.update_actions()
         self.timer = QTimer(self)

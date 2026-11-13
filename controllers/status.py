@@ -2,6 +2,8 @@
 
 
 import numpy as np
+import math
+import time
 from PySide6.QtWidgets import QMessageBox
 
 from audio_backends import glitch_count
@@ -12,6 +14,8 @@ SEP = "   \u2502   "
 
 
 class StatusMixin:
+
+# ----  enabling----------------------------------------------
 
     def update_actions(self):
         recording = self.recorder is not None
@@ -27,6 +31,7 @@ class StatusMixin:
         self.act_bookmark.setEnabled(has or recording)
         self.mark_btn.setEnabled(recording)
         self.live_zoom_btn.setEnabled(recording)
+        self.mark_btn.setEnabled(has or recording)
         self.act_rm_bookmark.setEnabled(has and has_marks)
         self.act_clear_bookmarks.setEnabled(has_marks)
         self.act_prev_bookmark.setEnabled(has and has_marks)
@@ -54,8 +59,10 @@ class StatusMixin:
         self.play_btn.setText(label)
         self.update_status()
 
+# ---- status line ----------------------------------------------
+
     def update_status(self):
-        if self.recorder is not None:
+        if self.recorder is not None or self.mode == "record":
             return
         clip = self.timeline.kept_duration()
         kbps = self.bitrate.currentData()
@@ -71,22 +78,31 @@ class StatusMixin:
             parts.append("\u25cf UNSAVED")
         self.statusBar().showMessage(SEP.join(parts))
 
-    # ---- tick -----------------------------------------------------------
+# ---- tick group ----------------------------------------------
 
     def tick(self):
+        self._update_recording_badge()
         if self.recorder is not None:
             self._tick_recording()
         else:
             self._tick_playback()
 
-    # Bookmark positions (0..1 across the live window) still inside the
-    # rolling buffer that is being drawn.
-    def _live_marks(self, mono, elapsed):
-        span = len(mono) / float(self.recorder.samplerate)
-        if span <= 0:
-            return []
-        return [1.0 - (elapsed - t) / span
-                for t in self.bookmarks if 0.0 <= elapsed - t <= span]
+    _badge_level = None
+
+    def _update_recording_badge(self):
+        rec = self.recorder
+        if rec is None or rec.paused:
+            level = None
+        elif self.isActiveWindow():
+            level = 255
+        else:                                    # pulse while not in front
+            wave = 0.5 + 0.5 * math.sin(time.monotonic() * 5.0)
+            level = int(70 + 185 * round(wave * 5) / 5.0)
+        if level == self._badge_level:
+            return
+        self._badge_level = level
+        self.taskbar.set_badge(level)
+
 
     def _tick_recording(self):
         error = self.recorder.error()
@@ -141,6 +157,15 @@ class StatusMixin:
             f"Recording {format_time(elapsed)} to disk{SEP}"
             f"input peak {db:5.1f} dBFS{tail}"
         )
+
+    # Bookmark positions (0..1 across the live window) still inside the
+    # rolling buffer that is being drawn.
+    def _live_marks(self, mono, elapsed):
+        span = len(mono) / float(self.recorder.samplerate)
+        if span <= 0:
+            return []
+        return [1.0 - (elapsed - t) / span
+                for t in self.bookmarks if 0.0 <= elapsed - t <= span]
         
     def _tick_playback(self):
         player = self.player

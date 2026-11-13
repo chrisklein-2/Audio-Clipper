@@ -1,5 +1,5 @@
 """
-core/editing.py - EditingMixin: delete, restore, undo, redo, trim, reset.
+controllers/editing.py - EditingMixin: delete, restore, undo, redo, trim, reset.
 
 """
 
@@ -21,6 +21,31 @@ class EditingMixin:
         if sel and self.timeline.restore_range(*sel):
             self.after_edit("Restored selection")
 
+    def edit_piece_fades(self, index=None):
+        tl = self.timeline
+        if not tl.keeps:
+            return
+        if index is None:
+            index = tl.keep_index_at(self.wave.playhead)
+        if index is None:
+            self.statusBar().showMessage(
+                "Put the playhead inside a kept piece, or double-click one "
+                "in the pieces list.", 5000)
+            return
+        dlg = PieceFadeDialog(tl.keeps[index], self.cut_fade.value() / 1000.0,
+                              index, self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+        fade_in, fade_out = dlg.values()
+        if tl.set_piece_fades(index, fade_in, fade_out):
+            self.after_edit(f"Piece {index + 1}: fades updated")
+
+    def after_edit(self, message):
+        self.stop_playback()
+        self.invalidate()
+        self.wave.update()
+        self.statusBar().showMessage(message, 4000)
+
     def auto_trim(self):
             removed = self.timeline.auto_trim_silence()
             if removed > 0.01:
@@ -41,27 +66,4 @@ class EditingMixin:
         if self.timeline.redo():
             self.after_edit("Redo")
 
-    def after_edit(self, message):
-        self.stop_playback()
-        self.invalidate()
-        self.wave.update()
-        self.statusBar().showMessage(message, 4000)
 
-    def edit_piece_fades(self, index=None):
-        tl = self.timeline
-        if not tl.keeps:
-            return
-        if index is None:
-            index = tl.keep_index_at(self.wave.playhead)
-        if index is None:
-            self.statusBar().showMessage(
-                "Put the playhead inside a kept piece, or double-click one "
-                "in the pieces list.", 5000)
-            return
-        dlg = PieceFadeDialog(tl.keeps[index], self.cut_fade.value() / 1000.0,
-                              index, self)
-        if dlg.exec() != QDialog.Accepted:
-            return
-        fade_in, fade_out = dlg.values()
-        if tl.set_piece_fades(index, fade_in, fade_out):
-            self.after_edit(f"Piece {index + 1}: fades updated")

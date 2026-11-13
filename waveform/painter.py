@@ -89,7 +89,7 @@ def paint(view, p):
         p.setPen(COL_TEXT)
         p.drawText(view.rect(), Qt.AlignCenter,
                    "Press Record and play something,\n"
-                   "or load an audio file.    (F1 = help)")
+                   "load an audio file, or drop one here.    (F1 = help)")
         return
 
     view.ensure_peaks(w)
@@ -134,9 +134,16 @@ def _paint_selection(view, p, bt, h):
         p.setPen(COL_SEL_EDGE)
         p.drawText(int(min(x1, x2)) + 6, bt + 32,
                    f"{format_time(sel[1] - sel[0])} selected")
-    for value, label, right in ((view.sel_a, "[", False), (view.sel_b, "]", True)):
-        if value is None:
-            continue
+    if view.sel_a is not None and view.sel_b is not None:
+        lo, hi = sorted((view.sel_a, view.sel_b))
+        flags = [(lo, "[", False), (hi, "]", True)]
+    else:
+        flags = []
+        if view.sel_a is not None:
+            flags.append((view.sel_a, "[", False))
+        if view.sel_b is not None:
+            flags.append((view.sel_b, "]", True))
+    for value, label, right in flags:
         _paint_flag(view, p, view.t2x(value), bt, label, right)
 
 

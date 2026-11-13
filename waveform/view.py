@@ -43,6 +43,9 @@ class WaveformView(QWidget):
         self.context_actions = []
         self._drag = None
         self._pan = None
+        self._press_x = 0.0
+        self._marking = False          
+        self.context_time = None       
         self.peaks = None
         self._peaks_key = None
         self.bookmarks = []
@@ -55,6 +58,7 @@ class WaveformView(QWidget):
         self.update()
 
     def set_timeline(self, timeline):
+        self._marking = False        
         self.timeline = timeline
         self.live_mono = None
         self.sel_a = self.sel_b = None
@@ -155,17 +159,20 @@ class WaveformView(QWidget):
         return None if b - a < 0.005 else (a, b)
 
     def clear_selection(self):
+        self._marking = False
         self.sel_a = self.sel_b = None
         self.selectionChanged.emit()
         self.update()
 
     def select_all(self):
+        self._marking = False
         if self.duration() > 0:
             self.sel_a, self.sel_b = 0.0, self.duration()
             self.selectionChanged.emit()
             self.update()
 
     def set_selection(self, a, b):
+        self._marking = False
         self.sel_a, self.sel_b = self.clamp(a), self.clamp(b)
         self.selectionChanged.emit()
         self.update()
@@ -173,18 +180,26 @@ class WaveformView(QWidget):
     def mark_in(self):
         if self.duration() <= 0:
             return
-        self.sel_a = self.playhead
-        if self.sel_b is None:
-            self.sel_b = self.playhead
+        t = self.playhead if self.context_time is None else self.context_time
+        if self._marking and self.sel_a is None and self.sel_b is not None:
+            self.sel_a = t                       # completes a mark-out-first pair
+            self._marking = False
+        else:
+            self.sel_a, self.sel_b = t, None     # start a new pair, wait for out
+            self._marking = True
         self.selectionChanged.emit()
         self.update()
-
+        
     def mark_out(self):
         if self.duration() <= 0:
             return
-        self.sel_b = self.playhead
-        if self.sel_a is None:
-            self.sel_a = self.playhead
+        t = self.playhead if self.context_time is None else self.context_time
+        if self._marking and self.sel_b is None and self.sel_a is not None:
+            self.sel_b = t                       # completes the pair
+            self._marking = False
+        else:
+            self.sel_a, self.sel_b = None, t    # start a new pair, wait for in
+            self._marking = True
         self.selectionChanged.emit()
         self.update()
 
@@ -224,6 +239,12 @@ class WaveformView(QWidget):
                 self.sel_a, self.sel_b = sel[0], sel[1]
                 self._drag = "edge"
                 return
+        if self._marking:
+            self._drag = "pending"           # a click keeps the half-made mark
+            self._press_x = x
+            self.set_playhead(self.clamp(self.x2t(x)))
+            self.playheadMoved.emit(self.playhead)
+            return
         self.sel_a = self.sel_b = self.clamp(self.x2t(x))
         self._drag = "edge"
         self.set_playhead(self.sel_a)
@@ -240,6 +261,16 @@ class WaveformView(QWidget):
         if self._drag == "playhead":
             self.set_playhead(self.x2t(x))
             self.playheadMoved.emit(self.playhead)
+            return
+        if self._drag == "pending":
+            if abs(x - self._press_x) < 3:
+                return
+            self._marking = False            # a drag makes a fresh selection
+            self.sel_a = self.clamp(self.x2t(self._press_x))
+            self.sel_b = self.clamp(self.x2t(x))
+            self._drag = "edge"
+            self.selectionChanged.emit()
+            self.update()
             return
         if self._drag == "edge":
             self.sel_b = self.clamp(self.x2t(x))
@@ -310,10 +341,12 @@ class WaveformView(QWidget):
     def contextMenuEvent(self, ev):
         if not self.context_actions:
             return
+        self.context_time = self.clamp(self.x2t(ev.pos().x()))
         menu = QMenu(self)
         for action in self.context_actions:
             menu.addSeparator() if action is None else menu.addAction(action)
         menu.exec(ev.globalPos())
+        self.context_time = None
 
     # True while the user is dragging the playhead on the ruler.
     def is_scrubbing(self):

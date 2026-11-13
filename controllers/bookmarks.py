@@ -10,7 +10,8 @@ class BookmarksMixin:
         if self.recorder is not None:
             t = self.recorder.elapsed()
         elif self.timeline.duration() > 0:
-            t = self.wave.playhead
+            ctx = self.wave.context_time
+            t = self.wave.playhead if ctx is None else ctx
         else:
             return
         self.bookmarks.append(t)
@@ -18,12 +19,13 @@ class BookmarksMixin:
         self.wave.set_bookmarks(self.bookmarks)
         self.update_actions()
         self.statusBar().showMessage(f"Bookmark at {format_time(t)}", 3000)
-        
+
     def remove_nearest_bookmark(self):
-        """Remove the bookmark closest to the playhead."""
+        """Remove the bookmark closest to the right-click (or the playhead)."""
         if not self.bookmarks or self.timeline.duration() <= 0:
             return
-        t = self.wave.playhead
+        ctx = self.wave.context_time
+        t = self.wave.playhead if ctx is None else ctx
         nearest = min(self.bookmarks, key=lambda b: abs(b - t))
         if abs(nearest - t) < max(2.0, self.wave.span() * 0.02):
             self.bookmarks.remove(nearest)
@@ -31,6 +33,8 @@ class BookmarksMixin:
             self.update_actions()
             self.statusBar().showMessage(
                 f"Removed bookmark at {format_time(nearest)}", 3000)
+        else:
+            self.statusBar().showMessage("No bookmark near here", 3000)
 
     def clear_bookmarks(self):
         self.bookmarks.clear()

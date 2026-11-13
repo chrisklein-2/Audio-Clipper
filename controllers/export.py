@@ -1,5 +1,5 @@
 
-"""core/export.py - ExportMixin: build the output chain and write clips."""
+"""controllers/export.py - ExportMixin: build the output chain and write clips."""
 
 import os
 
@@ -63,11 +63,11 @@ class ExportMixin:
         def done(written):
             self.last_export = written
             self.unsaved = False
+            self.reset_to_record_screen()
             self.statusBar().showMessage(
                 f"Saved {os.path.basename(written)} "
                 f"({mbytes(os.path.getsize(written))}) "
                 f"in {os.path.dirname(written)}", 10000)
-            self.update_actions()
         self.run_task("Exporting", f"Writing {os.path.basename(path)}...",
                       work, done)
 

@@ -1,4 +1,4 @@
-from .widgets import sep, abtn
+from .widgets import sep, action_button
 from .dialogs import BusyDialog, SourceDialog, JoinDialog, HelpDialog, PieceFadeDialog, SettingsDialog, confirm
 from .actions import ActionsMixin
 from .menus import MenuMixin

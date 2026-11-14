@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDoubleSpinBox, QGroupBox, QHBoxLayout, QLabel,
     QPushButton,  QSizePolicy, QVBoxLayout,
 )
-from .widgets import abtn, sep
+from .widgets import action_button, sep
 
 from processing import BITRATES
 
@@ -97,8 +97,8 @@ class OutputPanelMixin:
         self.cover_clear.clicked.connect(lambda: self.set_cover(None))
 
         # play/play from start buttons
-        self.play_btn = abtn(self.act_play, primary=True, min_w=115)
-        self.start_btn = abtn(self.act_from_start, min_w=90)
+        self.play_btn = action_button(self.act_play, primary=True, min_width=115)
+        self.start_btn = action_button(self.act_from_start, min_width=90)
 
         # play raw button
         self.raw_btn = QPushButton("Play raw")
@@ -106,8 +106,8 @@ class OutputPanelMixin:
         self.raw_btn.clicked.connect(self.play_raw)
 
         # export/finalize buttons
-        self.export_btn = abtn(self.act_export, primary=True, min_w=85)
-        self.finalize_btn = abtn(self.act_finalize, primary=True, min_w=100)  
+        self.export_btn = action_button(self.act_export, primary=True, min_width=85)
+        self.finalize_btn = action_button(self.act_finalize, primary=True, min_width=100)  
 
         # laying out the top
         top = QHBoxLayout()

@@ -109,6 +109,8 @@ class PanelsMixin:
         self.wave.playheadMoved.connect(self.on_playhead_moved)
         self.wave.viewChanged.connect(self.sync_scrollbar)
         self.wave.blockSelected.connect(self.on_block_selected)
+        self.wave.drop_filter = self.can_accept_drop
+        self.wave.filesDropped.connect(self.drop_files)
         self.wave.context_actions = [
             self.act_mark_in, self.act_mark_out, None,
             self.act_delete, self.act_restore, None,

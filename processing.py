@@ -210,6 +210,53 @@ def append_decoded(src, raw_path, samplerate, channels):
     return os.path.getsize(raw_path) // (2 * channels)
 
 
+# Copy bytes from one open file to another; limit=None copies to the end.
+def _copy_bytes(src, dst, limit=None):
+    remaining = limit
+    while remaining is None or remaining > 0:
+        size = 1 << 22 if remaining is None else min(1 << 22, remaining)
+        chunk = src.read(size)
+        if not chunk:
+            break
+        dst.write(chunk)
+        if remaining is not None:
+            remaining -= len(chunk)
+
+
+
+# Decode files and splice them into the middle of an existing raw file at
+# at_frame. Builds a new file beside the old one and swaps it in only when it
+# is complete, so a failure leaves the original untouched.
+# Returns the length in frames of each inserted file.
+def insert_decoded(paths, raw_path, at_frame, samplerate, channels):
+    frame_bytes = 2 * channels
+    joined = raw_path + ".new"
+    with tempfile.TemporaryDirectory(prefix="spotclip_") as tmp:
+        parts, lengths = [], []
+        for i, src in enumerate(paths):
+            part = os.path.join(tmp, f"part{i}.raw")
+            decode_to_raw(src, part, samplerate, channels)
+            parts.append(part)
+            lengths.append(os.path.getsize(part) // frame_bytes)
+
+        old_frames = os.path.getsize(raw_path) // frame_bytes
+        at_frame = max(0, min(int(at_frame), old_frames))
+        try:
+            with open(raw_path, "rb") as old, open(joined, "wb") as out:
+                _copy_bytes(old, out, at_frame * frame_bytes)   # before the drop point
+                for part in parts:                              # the new audio
+                    with open(part, "rb") as inp:
+                        _copy_bytes(inp, out)
+                _copy_bytes(old, out)                           # everything after
+            os.replace(joined, raw_path)
+        except Exception:
+            try:
+                os.remove(joined)
+            except OSError:
+                pass
+            raise
+    return lengths
+
 # Re-encode artwork to a modest JPEG so embedding costs ~40 KB, not megabytes.
 def prepare_cover(src, dst, max_px=COVER_PX):
     subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", src,

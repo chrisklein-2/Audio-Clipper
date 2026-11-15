@@ -7,7 +7,7 @@ window, the selection and markers, the playhead, and the cached pixel peaks.
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPainter
-from PySide6.QtWidgets import QMenu, QSizePolicy, QWidget
+from PySide6.QtWidgets import QMenu, QSizePolicy, QWidget, QFrame
 
 from . import painter
 from .painter import RULER_H
@@ -21,7 +21,10 @@ class WaveformView(QWidget):
     playheadMoved = Signal(float)
     viewChanged = Signal()
     blockSelected = Signal(int)      # kept-piece index, or -1 for a deleted gap
-
+    
+    # (file paths, seconds into the clip; -1 = the end)
+    filesDropped = Signal(list, float)
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setMinimumHeight(170)
@@ -49,6 +52,14 @@ class WaveformView(QWidget):
         self.peaks = None
         self._peaks_key = None
         self.bookmarks = []
+
+        # drag and drop of audio files
+        self.drop_filter = None           # set by the main window: mime -> bool
+        self.setAcceptDrops(True)
+        self._drop_line = QFrame(self)    # marker that follows the mouse
+        self._drop_line.setStyleSheet("background: #f5a623;")
+        self._drop_line.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self._drop_line.hide()
 
     # ---- model / mode ----------------------------------------------------
 
@@ -374,3 +385,42 @@ class WaveformView(QWidget):
             painter.paint(self, p)
         finally:
             p.end()
+
+
+    # Seconds into the clip at a widget x position.
+    def _seconds_at(self, x):
+        seconds = self.x2t(x)
+        return max(0.0, min(seconds, self.duration() if self.timeline else 0.0))
+
+
+    def dragEnterEvent(self, event):
+        mime = event.mimeData()
+        if mime.hasUrls() and (self.drop_filter is None or self.drop_filter(mime)):
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+
+    def dragMoveEvent(self, event):
+        timeline = getattr(self, "timeline", None)
+        if timeline is not None and timeline.duration() > 0:
+            x = int(event.position().x())
+            self._drop_line.setGeometry(x - 1, 0, 2, self.height())
+            self._drop_line.show()
+            self._drop_line.raise_()
+        event.acceptProposedAction()
+
+
+    def dragLeaveEvent(self, event):
+        self._drop_line.hide()
+
+
+    def dropEvent(self, event):
+        self._drop_line.hide()
+        paths = [u.toLocalFile() for u in event.mimeData().urls() if u.isLocalFile()]
+        if not paths:
+            event.ignore()
+            return
+        seconds = self._seconds_at(event.position().x())
+        event.acceptProposedAction()
+        self.filesDropped.emit(paths, seconds)

@@ -1,5 +1,16 @@
+# pycache
 __pycache__/
 *.pyc
+
+# local audio folders
 finals/
 exports/
 assets/
+
+# temporary session folder
+session/
+
+# virtual environments
+.venv/
+venv/
+env/

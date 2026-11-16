@@ -21,7 +21,7 @@ from ui import (
 from controllers import (
     TaskThread, SourceMixin, RecordingMixin, FileIOMixin, ExportMixin,
     FoldersMixin, CoverMixin, EditingMixin, TransportMixin, NavigationMixin,
-    BookmarksMixin, SettingsMixin, StatusMixin,
+    BookmarksMixin, SettingsMixin, StatusMixin, RecentMixin
 )
 
 
@@ -30,7 +30,8 @@ class MainWindow(
     ActionsMixin, MenuMixin, PanelsMixin, OutputPanelMixin,
     SourceMixin, RecordingMixin, FileIOMixin, ExportMixin,
     FoldersMixin, CoverMixin, EditingMixin,
-    TransportMixin, NavigationMixin, BookmarksMixin, SettingsMixin, StatusMixin,
+    TransportMixin, NavigationMixin, BookmarksMixin, 
+    SettingsMixin, StatusMixin, RecentMixin
 ):
     def __init__(self):
         super().__init__()

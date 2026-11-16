@@ -139,6 +139,7 @@ class FileIOMixin:
         def done(store):
             self._show_store(store, os.path.splitext(os.path.basename(path))[0])
             self.unsaved = False
+            self.add_recent(path)            
             self.update_actions()
 
 
@@ -211,18 +212,20 @@ class FileIOMixin:
             at = at_frame / rate
             keeps = insert_into_keeps(old_keeps, at, seconds)
 
-            # Bookmarks after the insertion point move later by the same amount.
-            # (Assumes bookmarks are plain times in seconds.)
+            # Bookmarks after the insertion point move later by the same amount
             if not at_end:
                 shift = sum(seconds)
-                self.bookmarks[:] = [
-                    b + shift if isinstance(b, (int, float)) and b >= at else b
-                    for b in self.bookmarks
-                ]
+                self.bookmarks[:] = [b + shift if b >= at else b for b in self.bookmarks]
 
             self._show_store(store, keeps=keeps)
             self.unsaved = True
             self.update_actions()
+
+            # Show what was inserted: select it and park the playhead at its start
+            if not at_end:
+                self.wave.set_selection(at, at + sum(seconds))
+                self.wave.goto(at)
+
             names = (os.path.basename(paths[0]) if len(paths) == 1
                      else f"{len(paths)} files")
             where = "end" if at_end else format_time(at)

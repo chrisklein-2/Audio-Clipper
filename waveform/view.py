@@ -52,21 +52,21 @@ class WaveformView(ZoomMixin, SelectionMixin, InputMixin, DropMixin, QWidget):
 
         # playhead, selection, zoom window
         self.playhead = 0.0
-        self.sel_a = self.sel_b = None
+        self.sel_first = self.sel_second = None
         self.view_start = 0.0
         self.view_end = 1.0
         self.context_actions = []
         self.context_time = None
 
         # mouse state
-        self._drag = None
-        self._pan = None
+        self._drag_mode = None
+        self._pan_origin = None
         self._press_x = 0.0
-        self._marking = False
+        self._awaiting_mark_pair = False
 
         # peak cache
         self.peaks = None
-        self._peaks_key = None
+        self._peaks_cache_key = None
 
         self._init_drop()
 
@@ -81,12 +81,12 @@ class WaveformView(ZoomMixin, SelectionMixin, InputMixin, DropMixin, QWidget):
 
 
     def set_timeline(self, timeline):
-        self._marking = False
+        self._awaiting_mark_pair = False
         self.timeline = timeline
         self.live_mono = None
-        self.sel_a = self.sel_b = None
+        self.sel_first = self.sel_second = None
         self.playhead = 0.0
-        self._peaks_key = None
+        self._peaks_cache_key = None
         self.zoom_fit()
         self.selectionChanged.emit()
 
@@ -131,12 +131,12 @@ class WaveformView(ZoomMixin, SelectionMixin, InputMixin, DropMixin, QWidget):
             return
         key = (width, round(self.view_start, 5), round(self.view_end, 5),
                store.frames())
-        if key == self._peaks_key:
+        if key == self._peaks_cache_key:
             return
         samplerate = store.samplerate
         self.peaks = store.peaks(self.view_start * samplerate,
                                  self.view_end * samplerate, width)
-        self._peaks_key = key
+        self._peaks_cache_key = key
 
 
     def paintEvent(self, event):

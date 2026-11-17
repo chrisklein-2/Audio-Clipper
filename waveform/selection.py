@@ -1,7 +1,7 @@
 """
 waveform/selection.py - SelectionMixin: selection, in/out marks and playhead.
 
-Mixed into WaveformView. sel_a / sel_b are the two ends in the order they were
+Mixed into WaveformView. sel_first / sel_second are the two ends in the order they were
 set (not sorted); selection() returns them sorted, or None if too small.
 """
 
@@ -9,30 +9,30 @@ set (not sorted); selection() returns them sorted, or None if too small.
 class SelectionMixin:
 
     def selection(self):
-        if self.sel_a is None or self.sel_b is None:
+        if self.sel_first is None or self.sel_second is None:
             return None
-        start, end = sorted((self.sel_a, self.sel_b))
+        start, end = sorted((self.sel_first, self.sel_second))
         return None if end - start < 0.005 else (start, end)
 
 
     def clear_selection(self):
-        self._marking = False
-        self.sel_a = self.sel_b = None
+        self._awaiting_mark_pair = False
+        self.sel_first = self.sel_second = None
         self.selectionChanged.emit()
         self.update()
 
 
     def select_all(self):
-        self._marking = False
+        self._awaiting_mark_pair = False
         if self.duration() > 0:
-            self.sel_a, self.sel_b = 0.0, self.duration()
+            self.sel_first, self.sel_second = 0.0, self.duration()
             self.selectionChanged.emit()
             self.update()
 
 
     def set_selection(self, start, end):
-        self._marking = False
-        self.sel_a, self.sel_b = self.clamp(start), self.clamp(end)
+        self._awaiting_mark_pair = False
+        self.sel_first, self.sel_second = self.clamp(start), self.clamp(end)
         self.selectionChanged.emit()
         self.update()
 
@@ -46,12 +46,12 @@ class SelectionMixin:
         if self.duration() <= 0:
             return
         mark_time = self._mark_time()
-        if self._marking and self.sel_a is None and self.sel_b is not None:
-            self.sel_a = mark_time                     # completes a mark-out-first pair
-            self._marking = False
+        if self._awaiting_mark_pair and self.sel_first is None and self.sel_second is not None:
+            self.sel_first = mark_time                     # completes a mark-out-first pair
+            self._awaiting_mark_pair = False
         else:
-            self.sel_a, self.sel_b = mark_time, None   # start a new pair, wait for out
-            self._marking = True
+            self.sel_first, self.sel_second = mark_time, None   # start a new pair, wait for out
+            self._awaiting_mark_pair = True
         self.selectionChanged.emit()
         self.update()
 
@@ -60,12 +60,12 @@ class SelectionMixin:
         if self.duration() <= 0:
             return
         mark_time = self._mark_time()
-        if self._marking and self.sel_b is None and self.sel_a is not None:
-            self.sel_b = mark_time                     # completes the pair
-            self._marking = False
+        if self._awaiting_mark_pair and self.sel_second is None and self.sel_first is not None:
+            self.sel_second = mark_time                     # completes the pair
+            self._awaiting_mark_pair = False
         else:
-            self.sel_a, self.sel_b = None, mark_time   # start a new pair, wait for in
-            self._marking = True
+            self.sel_first, self.sel_second = None, mark_time   # start a new pair, wait for in
+            self._awaiting_mark_pair = True
         self.selectionChanged.emit()
         self.update()
 

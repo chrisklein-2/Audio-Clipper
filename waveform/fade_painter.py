@@ -56,7 +56,7 @@ def paint_fades(view, canvas, centre_y, scale):
 
     end_wins = False
     for i, keep in enumerate(keeps):
-        x_start, x_end = view.t2x(keep.start), view.t2x(keep.end)
+        x_start, x_end = view.time_to_x(keep.start), view.time_to_x(keep.end)
         fade_in_s, fade_out_s = timeline.effective_fades(keep, default_fade_s)
         fade_in_s, fade_out_s = cap_fades(fade_in_s, fade_out_s, keep.length())
         if i == last and end_fade_s > fade_out_s:
@@ -80,8 +80,8 @@ def paint_fades(view, canvas, centre_y, scale):
     if not end_wins or end_fade_s <= 0:
         return
     if end_fade_s * px_per_s < MIN_WEDGE_PX:
-        x_end = view.t2x(keeps[-1].end)
-        piece_px = x_end - view.t2x(keeps[-1].start)
+        x_end = view.time_to_x(keeps[-1].end)
+        piece_px = x_end - view.time_to_x(keeps[-1].start)
         x_start = x_end - min(MIN_WEDGE_PX, max(1.0, piece_px))
         _lost_area(canvas, x_start, 1.0, x_end, 0.0, centre_y, top, bottom)
         return
@@ -91,6 +91,6 @@ def paint_fades(view, canvas, centre_y, scale):
             break
         use = min(end_fade_s - covered_s, keep.length())
         gain_end, gain_start = covered_s / end_fade_s, (covered_s + use) / end_fade_s
-        x_end, x_start = view.t2x(keep.end), view.t2x(keep.end - use)
+        x_end, x_start = view.time_to_x(keep.end), view.time_to_x(keep.end - use)
         _lost_area(canvas, x_start, gain_start, x_end, gain_end, centre_y, top, bottom)
         covered_s += use

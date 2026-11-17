@@ -39,8 +39,8 @@ def keep_mask(view, width):
     if not view.timeline:
         return mask
     for keep in view.timeline.keeps:
-        x_start = int(np.floor(view.t2x(keep.start)))
-        x_end = int(np.ceil(view.t2x(keep.end)))
+        x_start = int(np.floor(view.time_to_x(keep.start)))
+        x_end = int(np.ceil(view.time_to_x(keep.end)))
         mask[max(0, x_start):min(width, max(0, x_end))] = True
     return mask
 
@@ -71,7 +71,7 @@ def paint(view, canvas):
 
     view.ensure_peaks(width)
     for start, end in view.timeline.deleted_ranges():
-        x_start, x_end = view.t2x(start), view.t2x(end)
+        x_start, x_end = view.time_to_x(start), view.time_to_x(end)
         canvas.fillRect(QRectF(x_start, body_top, max(1.0, x_end - x_start), body_height),
                         COL_DEL_BG)
 
@@ -87,19 +87,19 @@ def paint(view, canvas):
                             x, int(centre_y - mins[x] * scale))
         canvas.setPen(QPen(COL_WAVE_KEEP_SOFT, 1))
         for keep in view.timeline.keeps:
-            canvas.drawLine(int(view.t2x(keep.start)), int(centre_y),
-                            int(view.t2x(keep.end)), int(centre_y))
+            canvas.drawLine(int(view.time_to_x(keep.start)), int(centre_y),
+                            int(view.time_to_x(keep.end)), int(centre_y))
     canvas.setPen(QPen(COL_WAVE_DEL, 1, Qt.DashLine))
     for start, end in view.timeline.deleted_ranges():
-        canvas.drawLine(int(view.t2x(start)), int(centre_y),
-                        int(view.t2x(end)), int(centre_y))
+        canvas.drawLine(int(view.time_to_x(start)), int(centre_y),
+                        int(view.time_to_x(end)), int(centre_y))
 
 
     paint_fades(view, canvas, centre_y, scale)
     _paint_selection(view, canvas, body_top, height)
     _paint_ruler(view, canvas, width)
     _paint_bookmarks(view, canvas)
-    playhead_x = view.t2x(view.playhead)
+    playhead_x = view.time_to_x(view.playhead)
     canvas.setPen(QPen(COL_PLAYHEAD, 1))
     canvas.drawLine(int(playhead_x), 0, int(playhead_x), height)
 
@@ -109,7 +109,7 @@ def paint(view, canvas):
 def _paint_selection(view, canvas, body_top, height):
     selected = view.selection()
     if selected:
-        x_start, x_end = view.t2x(selected[0]), view.t2x(selected[1])
+        x_start, x_end = view.time_to_x(selected[0]), view.time_to_x(selected[1])
         canvas.fillRect(QRectF(x_start, body_top, x_end - x_start, height - body_top),
                         QBrush(COL_SEL))
         canvas.setPen(QPen(COL_SEL_EDGE, 2))
@@ -118,17 +118,17 @@ def _paint_selection(view, canvas, body_top, height):
         canvas.setPen(COL_SEL_EDGE)
         canvas.drawText(int(min(x_start, x_end)) + 6, body_top + 32,
                         f"{format_time(selected[1] - selected[0])} selected")
-    if view.sel_a is not None and view.sel_b is not None:
-        low, high = sorted((view.sel_a, view.sel_b))
+    if view.sel_first is not None and view.sel_second is not None:
+        low, high = sorted((view.sel_first, view.sel_second))
         flags = [(low, "[", False), (high, "]", True)]
     else:
         flags = []
-        if view.sel_a is not None:
-            flags.append((view.sel_a, "[", False))
-        if view.sel_b is not None:
-            flags.append((view.sel_b, "]", True))
+        if view.sel_first is not None:
+            flags.append((view.sel_first, "[", False))
+        if view.sel_second is not None:
+            flags.append((view.sel_second, "]", True))
     for value, label, on_right in flags:
-        _paint_flag(view, canvas, view.t2x(value), body_top, label, on_right)
+        _paint_flag(view, canvas, view.time_to_x(value), body_top, label, on_right)
 
 
 
@@ -165,7 +165,7 @@ def _paint_ruler(view, canvas, width):
     canvas.setPen(COL_TEXT)
     tick_time = np.ceil(view.view_start / step) * step
     while tick_time <= view.view_end:
-        x = int(view.t2x(tick_time))
+        x = int(view.time_to_x(tick_time))
         canvas.drawLine(x, RULER_H - 6, x, RULER_H - 1)
         canvas.drawText(x + 3, RULER_H - 8, format_time(tick_time))
         tick_time += step
@@ -181,7 +181,7 @@ def _paint_bookmarks(view, canvas):
     radius = 3
     dot_y = RULER_H - radius - 2
     for bookmark_time in view.bookmarks:
-        x = int(view.t2x(bookmark_time))
+        x = int(view.time_to_x (bookmark_time))
         if -radius <= x <= view.width() + radius:
             canvas.drawEllipse(x - radius, dot_y - radius, radius * 2, radius * 2)
             canvas.drawLine(x, RULER_H, x, RULER_H + 8)

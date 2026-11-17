@@ -23,7 +23,7 @@ class DropMixin:
 
     # Seconds into the clip at a widget x position
     def _seconds_at(self, x):
-        return max(0.0, min(self.x2t(x), self.duration()))
+        return max(0.0, min(self.x_to_time(x), self.duration()))
 
 
     def dragEnterEvent(self, event):

@@ -20,7 +20,7 @@ class ZoomMixin:
         span = min(total, max(MIN_SPAN, span))
         start = max(0.0, min(start, total - span))
         self.view_start, self.view_end = start, start + span
-        self._peaks_key = None
+        self._peaks_cache_key = None
         self.viewChanged.emit()
         self.update()
 
@@ -72,12 +72,12 @@ class ZoomMixin:
 
 
     # seconds -> widget x
-    def t2x(self, seconds):
+    def time_to_x(self, seconds):
         return (seconds - self.view_start) / self.span() * self.width()
 
 
     # widget x -> seconds
-    def x2t(self, x):
+    def x_to_time(self, x):
         return self.view_start + (x / max(1, self.width())) * self.span()
 
 

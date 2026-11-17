@@ -105,9 +105,9 @@ class Timeline:
         for i, keep in enumerate(self.keeps):
             if keep.start <= t <= keep.end:
                 return keep.start, keep.end, i
-        for a, b in self.deleted_ranges():
-            if a <= t <= b:
-                return a, b, None
+        for start, end in self.deleted_ranges():
+            if start <= t <= end:
+                return start, end, None
         return None
 
     # Index of the kept piece containing t, or None.
@@ -162,32 +162,32 @@ class Timeline:
         self.keeps = merged
 
     # Subtract a range without touching undo. New cut edges get default fades.
-    def _delete_raw(self, a, b):
+    def _delete_raw(self, start, end):
         out = []
         for keep in self.keeps:
-            if b <= keep.start or a >= keep.end:
+            if end <= keep.start or start >= keep.end:
                 out.append(keep)
                 continue
-            if a > keep.start:
-                out.append(Keep(keep.start, a, keep.fade_in, None))
-            if b < keep.end:
-                out.append(Keep(b, keep.end, None, keep.fade_out))
+            if start > keep.start:
+                out.append(Keep(keep.start, start, keep.fade_in, None))
+            if end < keep.end:
+                out.append(Keep(end, keep.end, None, keep.fade_out))
         self._tidy(out)
 
-    def delete_range(self, a, b):
-        a, b = sorted((self.clamp(a), self.clamp(b)))
-        if b - a < MIN_KEEP:
+    def delete_range(self, start, end):
+        start, end = sorted((self.clamp(start), self.clamp(end)))
+        if end - start < MIN_KEEP:
             return False
         self._push()
-        self._delete_raw(a, b)
+        self._delete_raw(start, end)
         return True
 
-    def restore_range(self, a, b):
-        a, b = sorted((self.clamp(a), self.clamp(b)))
-        if b - a < MIN_KEEP:
+    def restore_range(self, start, end):
+        start, end = sorted((self.clamp(start), self.clamp(end)))
+        if end - start < MIN_KEEP:
             return False
         self._push()
-        self._tidy(self.keeps + [Keep(a, b)])
+        self._tidy(self.keeps + [Keep(start, end)])
         return True
 
     def reset(self):
@@ -243,11 +243,11 @@ class Timeline:
         for keep in self.keeps:
             a = max(0, int(keep.start * sr))
             b = min(self.frames(), int(keep.end * sr))
-            n = b - a
-            if n < 2:
+            frames = b - a
+            if frames < 2:
                 continue
-            fi, fo = self.effective_fades(keep, default)
-            fi, fo = cap_fades(int(fi * sr), int(fo * sr), n)
-            pieces.append(Piece(pos, a, n, int(fi), int(fo)))
-            pos += n
+            fade_in_frames, fade_out_frames = self.effective_fades(keep, default)
+            fade_in_frames, fade_out_frames = cap_fades(int(fade_in_frames * sr), int(fade_out_frames * sr), frames)
+            pieces.append(Piece(pos, a, frames, int(fade_in_frames), int(fade_out_frames)))
+            pos += frames
         return pieces

@@ -125,13 +125,13 @@ class FileIOMixin:
         self.stop_playback()
         self.drop_session()
         self.bookmarks.clear()
-        raw = self.new_session_path()
-        self.session_path = raw
+        raw_path = self.new_session_path()
+        self.session_path = raw_path
 
 
         def work(report):
-            _, rate, chans = decode_to_raw(path, raw)
-            store = AudioStore(raw, rate, chans)
+            _, samplerate, channels = decode_to_raw(path, raw_path)
+            store = AudioStore(raw_path, samplerate, channels)
             store.build_pyramid(report)
             return store
 
@@ -174,17 +174,17 @@ class FileIOMixin:
 
         self.stop_playback()
         old_keeps = [k.copy() for k in self.timeline.keeps]
-        raw = self.session_path
-        rate = self.timeline.samplerate()
-        chans = self.timeline.channels()
-        frame_bytes = 2 * chans
+        raw_path = self.session_path
+        samplerate = self.timeline.samplerate()
+        channels = self.timeline.channels()
+        frame_bytes = 2 * channels
         old_frames = self.timeline.store.frames()
 
         # Work out the insertion point in frames
         if at_seconds is None:
             at_frame = old_frames
         else:
-            at_frame = max(0, min(old_frames, int(round(at_seconds * rate))))
+            at_frame = max(0, min(old_frames, int(round(at_seconds * samplerate))))
         at_end = at_frame >= old_frames
         self.timeline.store.close()
 
@@ -195,12 +195,12 @@ class FileIOMixin:
                 # Fast path: just add to the end of the file
                 lengths, start = [], old_frames
                 for p in paths:
-                    end = append_decoded(p, raw, rate, chans)
+                    end = append_decoded(p, raw_path, samplerate, channels)
                     lengths.append(end - start)
                     start = end
             else:
-                lengths = insert_decoded(paths, raw, at_frame, rate, chans)
-            store = AudioStore(raw, rate, chans)
+                lengths = insert_decoded(paths, raw_path, at_frame, samplerate, channels)
+            store = AudioStore(raw_path, samplerate, channels)
             store.build_pyramid(report)
             return store, lengths
 
@@ -208,8 +208,8 @@ class FileIOMixin:
         # Back on the GUI thread: rebuild the keeps and show the result
         def done(result):
             store, lengths = result
-            seconds = [n / rate for n in lengths]
-            at = at_frame / rate
+            seconds = [n / samplerate for n in lengths]
+            at = at_frame / samplerate
             keeps = insert_into_keeps(old_keeps, at, seconds)
 
             # Bookmarks after the insertion point move later by the same amount
@@ -238,13 +238,13 @@ class FileIOMixin:
         def failed(_msg):
             if at_end:
                 try:
-                    with open(raw, "r+b") as handle:
+                    with open(raw_path, "r+b") as handle:
                         handle.truncate(old_frames * frame_bytes)
                 except OSError:
                     pass
 
             def rebuild(report):
-                s = AudioStore(raw, rate, chans)
+                s = AudioStore(raw_path, samplerate, channels)
                 s.build_pyramid(report)
                 return s
 
@@ -281,26 +281,26 @@ class FileIOMixin:
         self.stop_playback()
         self.drop_session()
         self.bookmarks.clear()
-        raw = self.new_session_path()
-        self.session_path = raw
+        raw_path = self.new_session_path()
+        self.session_path = raw_path
 
 
         def work(report):
-            frames, rate, chans = decode_to_raw(paths[0], raw)
+            frames, samplerate, channels = decode_to_raw(paths[0], raw_path)
             bounds = [frames]
             for p in paths[1:]:
-                bounds.append(append_decoded(p, raw, rate, chans))
-            store = AudioStore(raw, rate, chans)
+                bounds.append(append_decoded(p, raw_path, samplerate, channels))
+            store = AudioStore(raw_path, samplerate, channels)
             store.build_pyramid(report)
-            return store, bounds, rate
+            return store, bounds, samplerate
 
 
         def done(result):
-            store, bounds, rate = result
+            store, bounds, samplerate = result
             keeps, start = [], 0
             for end in bounds:
                 if end > start:
-                    keeps.append(Keep(start / rate, end / rate))
+                    keeps.append(Keep(start / samplerate, end / samplerate))
                 start = end
             self._show_store(
                 store,

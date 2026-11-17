@@ -58,7 +58,7 @@ class ActionsMixin:
         self.act_piece_fades.triggered.connect(lambda: self.edit_piece_fades())
         self.act_deselect = QAction("Deselect all", self, shortcut="Esc")
         self.act_deselect.triggered.connect(self.deselect_all)        
-        for a in (
+        for action in (
             self.act_mark_in, self.act_mark_out, self.act_delete, self.act_restore,
             self.act_undo, self.act_redo, self.act_trim, self.act_reset, self.act_fit,
             self.act_zoomsel, self.act_selall, self.act_play, self.act_from_start,
@@ -66,4 +66,4 @@ class ActionsMixin:
             self.act_clear_bookmarks, self.act_prev_bookmark,
             self.act_next_bookmark, self.act_finalize, self.act_piece_fades, self.act_deselect,
         ):
-            self.addAction(a)
+            self.addAction(action)

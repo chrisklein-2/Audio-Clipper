@@ -2,6 +2,8 @@
 theme.py - dark palette, stylesheet and the waveform colours.
 """
 
+from PySide6.QtCore import QEvent, QObject
+from PySide6.QtWidgets import QDialog, QMainWindow
 from PySide6.QtGui import QColor, QPalette
 import sys
 
@@ -172,6 +174,8 @@ def apply_dark_theme(app):
     pal.setColor(QPalette.Disabled, QPalette.ButtonText, QColor("#5a5a66"))
     app.setPalette(pal)
     app.setStyleSheet(QSS)
+    app._title_bar_filter = TitleBarFilter(app)
+    app.installEventFilter(app._title_bar_filter)
 
 # Windows 10 1809+ / 11: dark title bar (and coloured caption on Windows 11).
 def dark_title_bar(window):
@@ -198,3 +202,12 @@ def dark_title_bar(window):
                                   ctypes.sizeof(text))         # caption text
     except Exception:
         pass
+
+
+# Darkens the title bar of every main window and dialog the moment it is shown.
+class TitleBarFilter(QObject):
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Show and isinstance(watched, (QMainWindow, QDialog)):
+            dark_title_bar(watched)
+        return False

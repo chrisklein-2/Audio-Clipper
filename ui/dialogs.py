@@ -177,7 +177,7 @@ class HelpDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("How to use SpotClip")
+        self.setWindowTitle("How to use Audio Clipper")
         self.resize(680, 620)
         browser = QTextBrowser()
         browser.setHtml(HELP_HTML)
@@ -359,4 +359,3 @@ class SettingsDialog(QDialog):
             "threshold_db": self.threshold.value(),
             "ceiling_db": self.ceiling.value(),
         }
-

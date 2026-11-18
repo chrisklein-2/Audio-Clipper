@@ -2,7 +2,7 @@
 
 HELP_HTML = """
 <h3>1 &nbsp;Record screen and edit screen</h3>
-<p>SpotClip opens on the <b>record screen</b>. As soon as a recording has been
+<p>Audio Clipper opens on the <b>record screen</b>. As soon as a recording has been
 scanned, or a file is loaded, appended or joined, it switches to the <b>edit
 screen</b>. Exporting returns you to the record screen. To scrap the current
 clip and record again use <b>File &#8594; New recording (Ctrl+N)</b>.</p>

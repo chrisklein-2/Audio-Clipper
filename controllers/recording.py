@@ -98,7 +98,7 @@ class RecordingMixin:
                 self, "Dropouts during recording",
                 f"The audio layer reported {dropped} dropout(s). Those are real "
                 f"lost samples and will sound like clicks.\n\nUsual causes: heavy "
-                f"CPU load, or a sample rate mismatch between SpotClip and the "
+                f"CPU load, or a sample rate mismatch between Audio Clipper and the "
                 f"Windows device.",
             )
 

@@ -35,7 +35,7 @@ PAGE_HTML = """<!DOCTYPE html>
 <html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SpotClip</title>
+<title>Audio Clipper</title>
 <style>
 body{{font-family:-apple-system,sans-serif;text-align:center;padding:30px 18px;
       background:#121216;color:#e7e7ec;margin:0}}
@@ -50,10 +50,10 @@ p{{color:#9699a3;line-height:1.5;font-size:14px}}
 small{{color:#6c6f78;font-size:12px}}
 </style>
 </head><body>
-<h2>SpotClip</h2>
+<h2>Audio Clipper</h2>
 <p><b>{folder}</b> &mdash; {count} file(s)</p>
 {rows}
-<p><small>Keep the SpotClip window open on the computer until downloads
+<p><small>Keep the Audio Clipper window open on the computer until downloads
 finish. Reload this page to see newly exported files.</small></p>
 </body></html>"""
 

@@ -1,5 +1,5 @@
 """
-main.py - entry point for SpotClip.
+main.py - entry point for Audio Clipper.
 
     python main.py
 
@@ -24,7 +24,7 @@ def check_tools():
         return True
     QMessageBox.critical(
         None, "Missing tools",
-        "SpotClip needs these on your PATH but cannot find them:\n\n    "
+        "Audio Clipper needs these on your PATH but cannot find them:\n\n    "
         + ", ".join(missing) +
         "\n\nCheck with:\n    where " + missing[0] +
         "\n\nIf that prints nothing, the PATH entry is wrong or stale — remember that "
@@ -37,7 +37,7 @@ def check_tools():
 # Start Qt, apply the dark theme, show the window.
 def main():
     app = QApplication(sys.argv)
-    app.setApplicationName("SpotClip")
+    app.setApplicationName("Audio Clipper")
     app.setWindowIcon(QIcon("assets/..."))
     apply_dark_theme(app)
     check_tools()

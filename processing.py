@@ -38,7 +38,8 @@ BITRATES = [(32, "32 kbps  (speech, tiny)"),
             (96, "96 kbps  (music, good)"),
             (128, "128 kbps  (music, default)")]
 
-
+# Windows: stop ffmpeg/ffprobe opening a console window when the app has none
+NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 # Convert decibels to a linear gain.
 def db_to_lin(db):
@@ -172,8 +173,8 @@ def probe_audio(path):
     try:
         out = subprocess.run(
             ["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries",
-             "stream=sample_rate,channels", "-of", "csv=p=0", path],
-            capture_output=True, text=True, check=True)
+            "stream=sample_rate,channels", "-of", "csv=p=0", path],
+            capture_output=True, text=True, check=True, creationflags=NO_WINDOW)
         parts = (out.stdout or "").strip().split(",")
         rate = int(parts[0]) if parts and parts[0].isdigit() else 44100
         chans = min(2, int(parts[1])) if len(parts) > 1 and parts[1].isdigit() else 2
@@ -192,7 +193,8 @@ def decode_to_raw(src, dst, force_samplerate=None, force_channels=None):
     os.makedirs(os.path.dirname(os.path.abspath(dst)), exist_ok=True)
     subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", src,
                     "-vn", "-ar", str(samplerate), "-ac", str(channels),
-                    "-f", "s16le", "-c:a", "pcm_s16le", dst], check=True)
+                    "-f", "s16le", "-c:a", "pcm_s16le", dst],
+                    check=True, creationflags=NO_WINDOW)
     return os.path.getsize(dst) // (2 * channels), samplerate, channels
 
 
@@ -260,8 +262,8 @@ def insert_decoded(paths, raw_path, at_frame, samplerate, channels):
 # Re-encode artwork to a modest JPEG so embedding costs ~40 KB, not megabytes.
 def prepare_cover(src, dst, max_px=COVER_PX):
     subprocess.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-i", src,
-                    "-vf", f"scale='min({max_px},iw)':-2", "-frames:v", "1",
-                    "-q:v", "3", dst], check=True)
+                "-vf", f"scale='min({max_px},iw)':-2", "-frames:v", "1",
+                "-q:v", "3", dst], check=True, creationflags=NO_WINDOW)
     return dst
 
 
@@ -291,7 +293,7 @@ def _encode_args(path, samplerate, channels, bitrate_kbps, title, art):
     if ext in (".m4a", ".mp4"):
         cmd += ["-movflags", "+faststart"]
     if title:
-        cmd += ["-metadata", f"title={title}", "-metadata", "artist=SpotClip"]
+        cmd += ["-metadata", f"title={title}", "-metadata", "artist=Audio Clipper"]
     return cmd + [path]
 
 
@@ -326,7 +328,8 @@ def export_stream(path, streamer, samplerate, channels, bitrate_kbps=48,
                 print("cover art skipped:", exc)
                 art = None
         cmd = _encode_args(path, samplerate, channels, bitrate_kbps, title, art)
-        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+                        creationflags=NO_WINDOW)
         done = 0
         try:
             while True:

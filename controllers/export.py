@@ -1,4 +1,3 @@
-
 """controllers/export.py - ExportMixin: build the output chain and write clips."""
 
 import os
@@ -7,8 +6,8 @@ from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from editor import ClipStreamer
 from processing import LoudnessGuard, export_stream, unique_path
-from utils import mbytes                                          
-      
+from utils import mbytes
+
 
 class ExportMixin:
 
@@ -19,7 +18,7 @@ class ExportMixin:
             threshold_db=self.threshold.value(),
             ceiling_db=self.ceiling.value(),
         )
-
+    
     def make_streamer(self):
         if not self.timeline.store or self.timeline.frames() == 0:
             return None
@@ -46,28 +45,35 @@ class ExportMixin:
             self._write_clip(path)
 
     # Stream the clip to a file, reporting progress.
-    def _write_clip(self, path):
+    # remember=False keeps the file out of File > Open recent (used by Finalize).
+    def _write_clip(self, path, remember=True):
         streamer = self.make_streamer()
         if streamer is None:
             QMessageBox.information(self, "Nothing to export",
                                     "Keep at least a little audio first.")
             return
-        rate = self.timeline.samplerate()
-        chans = self.timeline.channels()
-        kbps = self.bitrate.currentData()
+        samplerate = self.timeline.samplerate()
+        channels = self.timeline.channels()
+        bitrate_kbps = self.bitrate.currentData()
         cover = self.cover_path
         title = os.path.splitext(os.path.basename(path))[0]
+
         def work(report):
-            return export_stream(path, streamer, rate, chans, kbps, title,
-                                 cover, report)
+            return export_stream(path, streamer, samplerate, channels,
+                                 bitrate_kbps, title, cover, report)
+
+
         def done(written):
             self.last_export = written
             self.unsaved = False
+            if remember:
+                self.add_recent(written)
             self.reset_to_record_screen()
             self.statusBar().showMessage(
                 f"Saved {os.path.basename(written)} "
                 f"({mbytes(os.path.getsize(written))}) "
                 f"in {os.path.dirname(written)}", 10000)
+
         self.run_task("Exporting", f"Writing {os.path.basename(path)}...",
                       work, done)
 
@@ -76,4 +82,4 @@ class ExportMixin:
     def do_export_final(self):
         name = self.clip_name.text().strip() or "clip"
         path = unique_path(os.path.join(self.ensure_finals_dir(), f"{name}.m4a"))
-        self._write_clip(path)
+        self._write_clip(path, remember=False)

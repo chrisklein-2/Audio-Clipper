@@ -3,6 +3,9 @@
 import os
 import queue
 import threading
+import json
+import time
+
 from .glitches import reset_glitches
 
 import numpy as np
@@ -66,6 +69,7 @@ class Recorder:
         os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
         reset_glitches()
         self._file = open(self.path, "wb", buffering=1 << 20)
+        self._write_recovery_meta()
         self._stop.clear()
         self._wr_thread = threading.Thread(target=self._writer_loop, daemon=True)
         self._wr_thread.start()
@@ -117,6 +121,7 @@ class Recorder:
             self._start_sd()
 
     def _writer_loop(self):
+        last_flush = time.time()
         while True:
             try:
                 block = self._queue.get(timeout=0.2)
@@ -128,6 +133,9 @@ class Recorder:
                 break
             try:
                 self._file.write(block.tobytes())
+                if time.time() - last_flush > 2.0:
+                    self._file.flush()
+                    last_flush = time.time()
             except Exception as exc:
                 self._error = f"write failed: {exc}"
                 break
@@ -256,3 +264,24 @@ class Recorder:
         if self._error:
             raise RuntimeError(self._error)
         return AudioStore(self.path, self.samplerate, self.channels)
+
+    # Describe this take beside the raw file so it can be recovered after a crash
+    def _write_recovery_meta(self):
+        meta = os.path.splitext(self.path)[0] + ".json"
+        data = {
+            "version": 1,
+            "raw": os.path.basename(self.path),
+            "samplerate": self.samplerate,
+            "channels": self.channels,
+            "keeps": None,
+            "bookmarks": [],
+            "clip_name": "",
+            "unsaved": True,
+            "saved_at": time.time(),
+        }
+        try:
+            with open(meta + ".tmp", "w", encoding="utf-8") as handle:
+                json.dump(data, handle)
+            os.replace(meta + ".tmp", meta)
+        except OSError:
+            pass        

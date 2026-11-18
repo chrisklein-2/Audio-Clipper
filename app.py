@@ -10,10 +10,8 @@ from PySide6.QtCore import QSettings, QTimer
 from PySide6.QtWidgets import QMainWindow, QMessageBox, QVBoxLayout, QWidget
 
 from config import DEFAULT_EXPORT_DIR, DEFAULT_FINALS_DIR, SESSION_DIR
-from utils import clean_orphan_sessions
 from editor import Timeline
 from audio_backends import StreamPlayer
-from theme import dark_title_bar
 from ui import (
     BusyDialog, TaskbarBadge, confirm,
     ActionsMixin, MenuMixin, PanelsMixin, OutputPanelMixin,
@@ -21,7 +19,7 @@ from ui import (
 from controllers import (
     TaskThread, SourceMixin, RecordingMixin, FileIOMixin, ExportMixin,
     FoldersMixin, CoverMixin, EditingMixin, TransportMixin, NavigationMixin,
-    BookmarksMixin, SettingsMixin, StatusMixin, RecentMixin
+    BookmarksMixin, SettingsMixin, RecentMixin, RecoveryMixin, StatusMixin,
 )
 
 
@@ -31,12 +29,11 @@ class MainWindow(
     SourceMixin, RecordingMixin, FileIOMixin, ExportMixin,
     FoldersMixin, CoverMixin, EditingMixin,
     TransportMixin, NavigationMixin, BookmarksMixin, 
-    SettingsMixin, StatusMixin, RecentMixin
+    SettingsMixin, StatusMixin, RecentMixin, RecoveryMixin
 ):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SpotClip")
-        clean_orphan_sessions()
+        self.setWindowTitle("Audio Clipper")
         self._init_state()
         self._build_ui()
         self._post_build()
@@ -44,7 +41,7 @@ class MainWindow(
     # ---- setup ----------------------------------------------------------
 
     def _init_state(self):
-        self.settings = QSettings("SpotClip", "SpotClip")
+        self.settings = QSettings("Audio Clipper", "Audio Clipper")
         self.export_dir = self.settings.value("export_dir", DEFAULT_EXPORT_DIR)
         self.finals_dir = self.settings.value("finals_dir", DEFAULT_FINALS_DIR)
         self.cover_path = self.settings.value("cover", None)
@@ -111,21 +108,26 @@ class MainWindow(
         self.set_mode("record")
         self.ensure_export_dir()
         self.setAcceptDrops(True)
+        geometry = self.settings.value("window_geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
         self.clip_name.setAcceptDrops(False)     
         self.goto_edit.setAcceptDrops(False)
         self.update_actions()
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
         self.timer.start(50)
+        self.start_recovery_timer()
+        QTimer.singleShot(0, self.offer_recovery)        
 
     # ---- shared plumbing ------------------------------------------------
 
     def invalidate(self, *_):
-        """Something that affects the output changed."""
         if self.timeline.duration() > 0:
             self.unsaved = True
         self.refresh_pieces()
         self.update_actions()
+        self.save_recovery()
 
     def run_task(self, title, message, func, on_done, on_fail=None):
         dlg = BusyDialog(title, message, self)
@@ -144,10 +146,6 @@ class MainWindow(
         dlg.exec()
 
     # ---- Qt events ------------------------------------------------------
-
-    def showEvent(self, ev):
-        super().showEvent(ev)
-        dark_title_bar(self)
 
     def dragEnterEvent(self, ev):
         if self.can_accept_drop(ev.mimeData()):
@@ -179,6 +177,7 @@ class MainWindow(
             ):
                 ev.ignore()
                 return
+        self.settings.setValue("window_geometry", self.saveGeometry())
         self.player.stop()
         if self.recorder is not None:
             try:

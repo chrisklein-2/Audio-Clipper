@@ -39,6 +39,7 @@ class FileIOMixin:
                 os.remove(self.session_path)
             except OSError:
                 pass
+        self.clear_recovery(self.session_path)     
         self.session_path = None
 
 

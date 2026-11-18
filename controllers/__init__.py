@@ -12,3 +12,4 @@ from .bookmarks import BookmarksMixin
 from .status import StatusMixin
 from .settings import SettingsMixin
 from .recent import RecentMixin
+from .recovery import RecoveryMixin
